@@ -1,0 +1,24 @@
+<h1>{{product.title}}</h1>
+
+{{#if product.thumbnail}}
+    <img src="{{product.thumbnail}}" alt="{{product.title}}" width="300" />
+{{/if}}
+
+<p><strong>Precio:</strong> ${{product.price}}</p>
+<p><strong>Descripción:</strong> {{product.description}}</p>
+<p><strong>Categoría:</strong> {{product.category}}</p>
+<p><strong>Stock:</strong> {{product.stock}}</p>
+<p><strong>Disponible:</strong> {{#if product.available}}Sí{{else}}No{{/if}}</p>
+
+{{#if (and product.available (gt product.stock 0))}}
+    <form action="/api/carts/{{cartId}}/products/{{product._id}}" method="POST">
+        <button type="submit">Agregar al carrito</button>
+    </form>
+{{else}}
+    <p style="color: red;">No disponible actualmente</p>
+{{/if}}
+
+<a href="/carts/{{cartId}}">Ver mi carrito</a>
+
+<br />
+<a href="/products">⬅️ Volver a productos</a>

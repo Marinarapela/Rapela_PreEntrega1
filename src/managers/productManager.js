@@ -1,84 +1,94 @@
-const fs = require('fs').promises
-const path = require('path')
-
+const Product = require("../models/product.model")
 
 class ProductManager {
-    constructor(pathToFile) {
-        this.path = pathToFile
+    async createProduct(data){
+        try {
+            const product = new Product (data)
+            return await product.save()
+        } catch (error) {
+            throw new Error ("Error al crear el producto")
+        }
     }
+
+    async getAllProducts({ limit = 10, page = 1, sort, category, available, query, baseUrl }) {
+        const filter = {};
+
+        if (category && category !== 'undefined') {
+            filter.category = category;
+        }
+
+        if (available === 'true' || available === 'false') {
+            filter.available = available === 'true';
+        }
+        if (query && query !== 'undefined') {
+            filter.$or = [
+                { title: { $regex: query, $options: 'i' } },
+                { description: { $regex: query, $options: 'i' } }
+            ];
+        }
+        const options = {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            lean: true,
+        };
+
+        if (sort === 'asc') options.sort = { price: 1 };
+        else if (sort === 'desc') options.sort = { price: -1 };
+
+        const result = await Product.paginate(filter, options);
 
     
-    // Leer productos desde el archivo
-    async readProducts() {
+    const buildLink = (targetPage) => {
+        const params = new URLSearchParams();
+        params.set('page', targetPage);
+        params.set('limit', limit);
+
+        if (sort) params.set('sort', sort);
+        if (category) params.set('category', category);
+        if (available) params.set('available', available);
+        
+        return `${baseUrl}?${params.toString()}`;
+        };
+
+        return {
+            status: 'success',
+            payload: result.docs,
+            totalPages: result.totalPages,
+            prevPage: result.prevPage,
+            nextPage: result.nextPage,
+            page: result.page,
+            hasPrevPage: result.hasPrevPage,
+            hasNextPage: result.hasNextPage,
+            prevLink: result.hasPrevPage ? buildLink(result.prevPage) : null,
+            nextLink: result.hasNextPage ? buildLink(result.nextPage) : null,
+            limit
+        };
+    }
+
+
+    async getProductById(productId){
         try {
-            const data = await fs.readFile(this.path, 'utf-8')
-            return JSON.parse(data)
+            const product = await Product.findById(productId)
+            return product
         } catch (error) {
-            console.error("Error al leer los productos:", error)
-            return []
+            throw new Error("Error al obtener el producto")
         }
     }
-
-    // Escribir productos en el archivo
-    async writeProducts(products) {
+    async updateProduct(id, updatedProduct){
         try {
-            await fs.writeFile(this.path, JSON.stringify(products, null, 2))
+            const product = await Product.findByIdAndUpdate(id, updatedProduct, {new: true})
+            return product
         } catch (error) {
-            console.error("Error al guardar los productos:", error)
-            throw error
+            throw new Error("Error al actualizar el producto")
         }
     }
-
-    // Agregar un nuevo producto
-    async addProduct(product) {
-        const products = await this.readProducts()
-        
-        // Generar el nuevo ID automáticamente
-        const newId = products.length > 0 ? products[products.length - 1].id + 1 : 1
-        const newProduct = { ...product, id: newId }
-
-        products.push(newProduct)
-        await this.writeProducts(products)
-        return newProduct
-    }
-
-    // Obtener todos los productos
-    async getAllProducts() {
-        return await this.readProducts()
-    }
-
-    // Obtener un producto por ID
-    async getProductById(id) {
-        const products = await this.readProducts()
-        return products.find(product => product.id === id)
-    }
-
-    // Actualizar un producto por ID
-    async updateProduct(id, updatedProduct) {
-        const products = await this.readProducts()
-        const productIndex = products.findIndex(product => product.id === id)
-        
-        if (productIndex === -1) {
-            throw new Error("Producto no encontrado")
+    async deleteProduct(id){
+        try {
+            const product = await Product.findByIdAndDelete(id)
+            return product
+        } catch (error) {
+            throw new Error("Error al eliminar el producto")
         }
-
-        const updatedProductWithId = { ...updatedProduct, id }
-        products[productIndex] = updatedProductWithId
-        await this.writeProducts(products)
-        return updatedProductWithId
-    }
-
-    // Eliminar un producto por ID
-    async deleteProduct(id) {
-        const products = await this.readProducts()
-        const updatedProducts = products.filter(product => product.id !== id)
-        
-        if (products.length === updatedProducts.length) {
-            throw new Error("Producto no encontrado")
-        }
-
-        await this.writeProducts(updatedProducts)
-        return { message: 'Producto eliminado con éxito' }
     }
 }
 

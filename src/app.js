@@ -1,84 +1,45 @@
 const express = require ("express")
 const app = express ()
-const ProductManager = require('./managers/productManager')
-const cartsRouter = require('./routes/carts')
+require('dotenv').config()
+const productRouter = require('./routes/productRouter')
+const cartsRouter = require('./routes/cartsRouter')
 var logger = require ("morgan")
+const viewsRouter = require('./routes/viewsRouter')
+const mongoose = require("mongoose")
+const session = require('express-session')
+const Cart = require('./models/cart.model')
+const exphbs = require ('express-handlebars')
 
+const path = require ("path")
 
-const productManager = new ProductManager('./db/products.json')
+const hbs = exphbs.create({
+    extname: '.hbs',
+    defaultLayout: 'main',
+    helpers: {
+    eq: (a, b) => a === b,
+    gt: (a, b) => a > b,
+    and: (a, b) => a && b,
+    json: (context) => JSON.stringify(context, null, 2) 
+    }
+})
+
+app.use(session({
+    secret: 'tu_secreto_seguro',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { maxAge: 1000 * 60 * 60 * 24 } // 1 día
+}))
 
 
 app.use(express.json()) 
 app.use(express.urlencoded({ extended: true}))
 app.use(logger("dev"))
 app.use('/api/carts', cartsRouter)
+app.use('/api/products', productRouter)
+app.use('/', viewsRouter)
 
-// ROUTES /api/products y /api/carts
+app.use(express.static(path.join(__dirname, "public")))
 
-// GET
-
-app.get("/api/products/", async (req,res ) => {
-    try {
-        const products = await productManager.readProducts()
-        res.status(200).json(products)
-    } catch (error) {
-        res.status(500).send("Error interno del servidor")
-    }
-})
-
-app.get("/api/products/:id", async (req, res) => {
-    try {
-        const { id } = req.params
-        const products = await productManager.readProducts ()
-        const product = products.find((product) => product.id === parseInt (id))
-        if (product) {
-            res.status (200).json(product)
-        } else {
-            res.status(400).send("Producto no encontrado")
-        }
-    } catch (error) {
-        res.status(500).send("Error interno del servidor")
-    }
-})
-
-// POST
-
-app.post ("/api/products/", async (req,res) => {
-    try {
-        const newProduct = await productManager.addProduct(req.body)
-        res.status(201).json(newProduct)
-    } catch (error) {
-        console.error("Error al crear el producto:", error)
-        res.status (500).send("Error interno del servidor")
-    }
-})
-
-//PUT
-
-app.put("/api/products/:id", async (req, res) => {
-    try {
-        const { id } = req.params
-        const updatedProduct = await productManager.updateProduct(parseInt(id), req.body)
-        res.status(200).json(updatedProduct)
-    } catch (error) {
-        res.status(500).send("Error interno del servidor")
-    }
-})
-
-
-// DELETE
-app.delete("/api/products/:id", async (req, res) => {
-    try {
-        const { id } = req.params       
-        const result = await productManager.deleteProduct(parseInt(id))
-        res.status(200).json(result)
-    } catch (error) {
-        res.status(500).send("Error interno del servidor")
-    }
-})
-
-
-module.exports = app
 
 app.use((req,res) => {
     return res.status (404).send(
@@ -88,3 +49,18 @@ app.use((req,res) => {
         </div>`
     )
 })
+
+
+
+app.engine('hbs', hbs.engine)
+
+app.set("view engine", "hbs"),
+app.set("views", path.join(__dirname, "views"))
+
+mongoose.connect(process.env.MONGO_URI).then(()=>{
+    console.log("MongoDB connected")
+})
+.catch((err)=> console.error(err))
+
+module.exports = app
+

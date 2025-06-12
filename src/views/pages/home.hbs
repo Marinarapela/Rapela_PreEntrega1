@@ -1,0 +1,16 @@
+<h1>Bienvenidos a Halaquitas - Vivero</h1>
+
+{{#if products}}
+    <ul>
+        {{#each products}}
+            <li>
+                <strong>{{this.title}}</strong> - ${{this.price}} - Stock: {{this.stock}}
+            </li>
+        {{/each}}
+    </ul>
+{{else}}
+    <p>No hay productos disponibles.</p>
+{{/if}}
+
+<p>Carrito ID: {{cartId}}</p>
+

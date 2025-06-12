@@ -1,0 +1,60 @@
+<h1>Productos</h1>
+
+<form method="GET" action="/products">
+    <label>Categoría:</label>
+    <input type="text" name="query" placeholder="plantas" value="{{query.query}}" />
+
+    <label>Disponibilidad:</label>
+    <select name="available">
+        <option value="" {{#unless query.available}}selected{{/unless}}>Todas</option>
+        <option value="true" {{#if (eq query.available "true")}}selected{{/if}}>Disponible</option>
+        <option value="false" {{#if (eq query.available "false")}}selected{{/if}}>No disponible</option>
+    </select>
+
+    <label>Orden por precio:</label>
+    <select name="sort">
+        <option value="" {{#unless query.sort}}selected{{/unless}}>Sin orden</option>
+        <option value="asc" {{#if (eq query.sort "asc")}}selected{{/if}}>Ascendente</option>
+        <option value="desc" {{#if (eq query.sort "desc")}}selected{{/if}}>Descendente</option>
+    </select>
+
+    <label>Límite por página:</label>
+    <input type="number" name="limit" value="{{query.limit}}" min="1" />
+
+    <input type="hidden" name="page" value="{{query.page}}" />
+
+    <button type="submit">Filtrar</button>
+</form>
+
+<hr />
+
+<ul>
+    {{#each payload}}
+        <li>
+            {{#if thumbnail}}
+                <img src="{{thumbnail}}" alt="{{title}}" width="150" />
+            {{/if}}
+            <strong>{{title}}</strong> - ${{price}}  
+            - Categoría: {{category}}  
+            - Disponible: {{#if available}}✅ Sí{{else}}❌ No{{/if}}  
+            
+            <form action="/api/carts/{{../cartId}}/products/{{_id}}" method="POST" style="display:inline;">
+                <button type="submit">Agregar al carrito</button>
+            </form>
+        </li>
+    {{/each}}
+</ul>
+
+<hr />
+
+<div>
+    Página {{page}} de {{totalPages}}<br />
+
+    {{#if hasPrevPage}}
+        <a href="{{prevLink}}">⬅️ Anterior</a>
+    {{/if}}
+
+    {{#if hasNextPage}}
+        <a href="{{nextLink}}">Siguiente ➡️</a>
+    {{/if}}
+</div>
